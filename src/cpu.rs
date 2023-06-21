@@ -1,6 +1,6 @@
 use std::alloc::AllocError;
 
-use crate::{AllocMode, Device, DeviceAllocator, TData};
+use crate::{AllocMode, Device, DeviceAllocator, DevicePrimitive, TData};
 
 impl DeviceAllocator for CPU {
     type Prim = *mut u8;
@@ -25,6 +25,14 @@ impl DeviceAllocator for CPU {
     }
 }
 
+impl DevicePrimitive for *mut u8 {
+    fn as_bytes(&self) -> &[u8] {
+        unsafe { std::slice::from_raw_parts(*self, 1) }
+    }
+
+    fn as_bytes_mut(&mut self) -> &mut [u8] {}
+}
+
 ///Default device
 #[derive(Debug)]
 pub struct CPU;
@@ -45,15 +53,11 @@ impl Device for CPU {
 
     fn copy_to<Ext: Device>(
         &self,
-        src: &Self::Prim,
-        dst: &Ext::Prim,
+        src: &Ext::Prim,
+        dst: &mut Self::Prim,
         len: usize,
-        dst_device: &Ext,
     ) -> Result<(), AllocError> {
-        dst_device.copy_from_host(
-            unsafe { std::slice::from_raw_parts(*src as *const u8, len) },
-            dst,
-        )
+        todo!();
     }
 
     fn allocate(

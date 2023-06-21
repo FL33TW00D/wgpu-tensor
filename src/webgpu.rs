@@ -130,12 +130,11 @@ impl Device for WebGPU {
 
     fn copy_to<Ext: Device>(
         &self,
-        src: &Self::Prim,
-        dst: &Ext::Prim,
+        src: &Ext::Prim,
+        dst: &mut Self::Prim,
         len: usize,
-        dst_device: &Ext,
     ) -> Result<(), AllocError> {
-        todo!()
+        self.handle.queue().write_buffer(dst, 0, unsafe { src });
     }
 
     fn allocate(

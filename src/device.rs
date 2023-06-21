@@ -36,15 +36,14 @@ pub trait Device {
     ///The primitive type used to represent memory on the device.
     ///* CPU: *mut u8
     ///* WEBGPU: wgpu::Buffer
-    type Prim: Debug;
+    type Prim: DevicePrimitive;
     fn copy_from_host<T: TData>(&self, src: &[T], dst: &Self::Prim) -> Result<(), AllocError>;
     fn copy_to_host<T: TData>(&self, src: &Self::Prim, dst: &mut [T]) -> Result<(), AllocError>;
     fn copy_to<Ext: Device>(
         &self,
-        src: &Self::Prim,
-        dst: &Ext::Prim,
+        src: &Ext::Prim,
+        dst: &mut Self::Prim,
         len: usize,
-        dst_device: &Ext,
     ) -> Result<(), AllocError>;
     fn allocate(&self, layout: Layout, mode: AllocMode) -> Result<Self::Prim, AllocError>;
     fn deallocate(&self, item: &mut Self::Prim, layout: Layout) -> Result<(), AllocError>;
@@ -59,4 +58,11 @@ pub trait DeviceAllocator {
     unsafe fn alloc(&self, layout: Layout, mode: AllocMode) -> Self::Prim;
     unsafe fn alloc_init(&self, layout: Layout, init: &[u8], mode: AllocMode) -> Self::Prim;
     unsafe fn dealloc(&self, item: &mut Self::Prim, layout: Layout);
+}
+
+///DevicePrimitive is a trait for types that can be used as primitives on a device.
+///They should expose the ability to get bytes
+pub trait DevicePrimitive: Debug {
+    fn as_bytes(&self) -> &[u8];
+    fn as_bytes_mut(&mut self) -> &mut [u8];
 }
