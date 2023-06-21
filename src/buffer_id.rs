@@ -20,4 +20,8 @@ impl BufferID {
     pub fn new() -> Self {
         Self(nanoid!(6, &SAFE, Self::seed).as_str())
     }
+
+    pub fn as_str(&self) -> &'static str {
+        self.0
+    }
 }

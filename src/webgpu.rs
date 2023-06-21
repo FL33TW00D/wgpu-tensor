@@ -105,9 +105,11 @@ impl Device for WebGPU {
             },
         );
         self.handle.device().poll(wgpu::Maintain::Wait);
+        //TODO: bring inside closure
         let result = rx.recv().unwrap();
-        let result =
-            unsafe { std::slice::from_raw_parts(result.as_ptr() as *const T, result.len()) };
+        let dt = T::dtype();
+        let len = dt.size_of() * dst.len();
+        let result = unsafe { std::slice::from_raw_parts(result.as_ptr() as *const T, len) };
         dst.copy_from_slice(result);
         Ok(())
     }
@@ -116,10 +118,28 @@ impl Device for WebGPU {
         self.handle
             .device
             .create_buffer_init(&wgpu::util::BufferInitDescriptor {
-                label: Some(BufferID::new()),
+                label: Some(BufferID::new().as_str()),
                 contents: bytemuck::cast_slice(src),
                 usage: wgpu::BufferUsages::COPY_SRC,
             });
         Ok(())
+    }
+
+    fn copy_to<T: TData, Ext: Device>(
+        &self,
+        src: Self::Prim,
+        dst: Ext::Prim,
+        len: usize,
+        dst_device: &Ext,
+    ) -> Result<(), AllocError> {
+        todo!()
+    }
+
+    fn allocate(
+        &self,
+        layout: std::alloc::Layout,
+        mode: crate::AllocMode,
+    ) -> Result<Self::Prim, AllocError> {
+        unsafe { Ok(self.handle.alloc(layout, mode)) }
     }
 }

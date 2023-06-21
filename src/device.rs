@@ -11,7 +11,20 @@ pub enum AllocMode {
     COPY_READ,
     COPY_WRITE,
     STORAGE,
-    ALL,
+    DEFAULT,
+}
+
+impl Into<wgpu::BufferUsages> for AllocMode {
+    fn into(self) -> wgpu::BufferUsages {
+        match self {
+            AllocMode::MAP_READ => wgpu::BufferUsages::MAP_READ,
+            AllocMode::MAP_WRITE => wgpu::BufferUsages::MAP_WRITE,
+            AllocMode::COPY_READ => wgpu::BufferUsages::COPY_SRC,
+            AllocMode::COPY_WRITE => wgpu::BufferUsages::COPY_DST,
+            AllocMode::STORAGE => wgpu::BufferUsages::STORAGE,
+            AllocMode::DEFAULT => wgpu::BufferUsages::all(),
+        }
+    }
 }
 
 ///Device is an abstraction for a device on which memory can be allocated.
@@ -26,6 +39,14 @@ pub trait Device {
     type Prim: Debug;
     fn copy_from_host<T: TData>(&self, src: &[T], dst: Self::Prim) -> Result<(), AllocError>;
     fn copy_to_host<T: TData>(&self, src: Self::Prim, dst: &mut [T]) -> Result<(), AllocError>;
+    fn copy_to<T: TData, Ext: Device>(
+        &self,
+        src: Self::Prim,
+        dst: Ext::Prim,
+        len: usize,
+        dst_device: &Ext,
+    ) -> Result<(), AllocError>;
+    fn allocate(&self, layout: Layout, mode: AllocMode) -> Result<Self::Prim, AllocError>;
 }
 
 ///DeviceAllocator is similar to [`std::alloc::GlobalAlloc`], but allows different allocation modes.

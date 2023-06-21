@@ -1,5 +1,5 @@
-#![feature(allocator_api)]
 #![feature(lazy_cell)]
+#![feature(allocator_api)]
 use smallvec::SmallVec;
 use std::{alloc::AllocError, fmt::Debug, rc::Rc};
 
@@ -84,7 +84,7 @@ impl<D: Device> Tensor<D> {
 }
 
 impl Tensor<CPU> {
-    pub fn new<T: TData>(shape: Shape, data: &[T]) -> Result<Self, AllocError> {
+    pub fn new<T: TData>(shape: Shape, data: impl AsRef<[T]>) -> Result<Self, AllocError> {
         let dt = T::dtype();
         let strides = shape.clone().into();
         let storage = Storage::new(data)?;
@@ -95,19 +95,6 @@ impl Tensor<CPU> {
             strides,
             storage: storage.into(),
         })
-    }
-}
-
-impl Into<wgpu::BufferUsages> for AllocMode {
-    fn into(self) -> wgpu::BufferUsages {
-        match self {
-            AllocMode::MAP_READ => wgpu::BufferUsages::MAP_READ,
-            AllocMode::MAP_WRITE => wgpu::BufferUsages::MAP_WRITE,
-            AllocMode::COPY_READ => wgpu::BufferUsages::COPY_SRC,
-            AllocMode::COPY_WRITE => wgpu::BufferUsages::COPY_DST,
-            AllocMode::STORAGE => wgpu::BufferUsages::STORAGE,
-            AllocMode::ALL => wgpu::BufferUsages::all(),
-        }
     }
 }
 
