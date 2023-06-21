@@ -53,20 +53,30 @@ impl DeviceAllocator for GPUHandle {
     type Prim = wgpu::Buffer;
 
     unsafe fn alloc(&self, layout: std::alloc::Layout, mode: crate::AllocMode) -> Self::Prim {
-        todo!()
+        self.device.create_buffer(&wgpu::BufferDescriptor {
+            label: Some(BufferID::new().inner()),
+            size: layout.size() as u64,
+            usage: mode.into(),
+            mapped_at_creation: false,
+        })
     }
 
     unsafe fn alloc_init(
         &self,
-        layout: std::alloc::Layout,
+        _layout: std::alloc::Layout,
         init: &[u8],
         mode: crate::AllocMode,
     ) -> Self::Prim {
-        todo!()
+        self.device
+            .create_buffer_init(&wgpu::util::BufferInitDescriptor {
+                label: Some(BufferID::new().inner()),
+                contents: bytemuck::cast_slice(init),
+                usage: mode.into(),
+            })
     }
 
-    unsafe fn dealloc(&self, item: Self::Prim, layout: std::alloc::Layout) {
-        todo!()
+    unsafe fn dealloc(&self, item: Self::Prim, _layout: std::alloc::Layout) {
+        item.destroy()
     }
 }
 
@@ -87,7 +97,7 @@ impl Device for WebGPU {
     type Prim = wgpu::Buffer;
     type Allocator = GPUHandle;
 
-    fn copy_to_host<T: TData>(&self, src: Self::Prim, dst: &mut [T]) -> Result<(), AllocError> {
+    fn copy_to_host<T: TData>(&self, src: &Self::Prim, dst: &mut [T]) -> Result<(), AllocError> {
         let buffer_slice = src.slice(..);
         let (tx, rx) = std::sync::mpsc::sync_channel(1);
 
@@ -114,21 +124,14 @@ impl Device for WebGPU {
         Ok(())
     }
 
-    fn copy_from_host<T: TData>(&self, src: &[T], dst: Self::Prim) -> Result<(), AllocError> {
-        self.handle
-            .device
-            .create_buffer_init(&wgpu::util::BufferInitDescriptor {
-                label: Some(BufferID::new().as_str()),
-                contents: bytemuck::cast_slice(src),
-                usage: wgpu::BufferUsages::COPY_SRC,
-            });
+    fn copy_from_host<T: TData>(&self, src: &[T], dst: &Self::Prim) -> Result<(), AllocError> {
         Ok(())
     }
 
-    fn copy_to<T: TData, Ext: Device>(
+    fn copy_to<Ext: Device>(
         &self,
-        src: Self::Prim,
-        dst: Ext::Prim,
+        src: &Self::Prim,
+        dst: &Ext::Prim,
         len: usize,
         dst_device: &Ext,
     ) -> Result<(), AllocError> {

@@ -22,7 +22,7 @@ impl Into<wgpu::BufferUsages> for AllocMode {
             AllocMode::COPY_READ => wgpu::BufferUsages::COPY_SRC,
             AllocMode::COPY_WRITE => wgpu::BufferUsages::COPY_DST,
             AllocMode::STORAGE => wgpu::BufferUsages::STORAGE,
-            AllocMode::DEFAULT => wgpu::BufferUsages::all(),
+            AllocMode::DEFAULT => wgpu::BufferUsages::STORAGE,
         }
     }
 }
@@ -37,12 +37,12 @@ pub trait Device {
     ///* CPU: *mut u8
     ///* WEBGPU: wgpu::Buffer
     type Prim: Debug;
-    fn copy_from_host<T: TData>(&self, src: &[T], dst: Self::Prim) -> Result<(), AllocError>;
-    fn copy_to_host<T: TData>(&self, src: Self::Prim, dst: &mut [T]) -> Result<(), AllocError>;
-    fn copy_to<T: TData, Ext: Device>(
+    fn copy_from_host<T: TData>(&self, src: &[T], dst: &Self::Prim) -> Result<(), AllocError>;
+    fn copy_to_host<T: TData>(&self, src: &Self::Prim, dst: &mut [T]) -> Result<(), AllocError>;
+    fn copy_to<Ext: Device>(
         &self,
-        src: Self::Prim,
-        dst: Ext::Prim,
+        src: &Self::Prim,
+        dst: &Ext::Prim,
         len: usize,
         dst_device: &Ext,
     ) -> Result<(), AllocError>;

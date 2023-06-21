@@ -21,7 +21,7 @@ impl<D: Device> Storage<D> {
         let prim = ext.allocate(self.layout, AllocMode::DEFAULT)?;
         //Here we should cast to bytes
         self.device
-            .copy_to(self.data, prim, self.layout.size(), &ext)?;
+            .copy_to(&self.data, &prim, self.layout.size(), &ext)?;
         Ok(Storage {
             data: prim,
             layout: self.layout,

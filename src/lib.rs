@@ -72,19 +72,19 @@ pub struct Tensor<D: Device> {
 }
 
 impl<D: Device> Tensor<D> {
-    pub fn to<Other: Device>(self, device: Other) -> Tensor<Other> {
-        let storage = self.storage.to(device);
-        Tensor {
+    pub fn to<Other: Device>(self, device: Other) -> Result<Tensor<Other>, anyhow::Error> {
+        let storage = self.storage.to(device)?;
+        Ok(Tensor {
             dt: self.dt,
             shape: self.shape,
             strides: self.strides,
             storage: Rc::new(storage),
-        }
+        })
     }
 }
 
 impl Tensor<CPU> {
-    pub fn new<T: TData>(shape: Shape, data: impl AsRef<[T]>) -> Result<Self, AllocError> {
+    pub fn new<T: TData>(shape: Shape, data: Vec<T>) -> Result<Self, AllocError> {
         let dt = T::dtype();
         let strides = shape.clone().into();
         let storage = Storage::new(data)?;
@@ -103,7 +103,7 @@ mod tests {
     use super::*;
     #[tokio::test]
     async fn it_works() {
-        let t = Tensor::<CPU>::new(vec![2, 2].into(), &[1., 2., 3., 4.]).unwrap();
+        let t = Tensor::<CPU>::new(vec![2, 2].into(), vec![1., 2., 3., 4.]).unwrap();
         println!("{:?}", t);
         let wgpu_device = WebGPU::new().await.unwrap();
         let gpu_t = t.to(wgpu_device);

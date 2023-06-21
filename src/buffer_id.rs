@@ -5,7 +5,7 @@ use std::sync::atomic::{AtomicU64, Ordering};
 
 const IDCNT: LazyCell<AtomicU64> = LazyCell::new(|| AtomicU64::new(0));
 
-pub struct BufferID(&'static str);
+pub struct BufferID(String);
 
 impl BufferID {
     const MAX_LENGTH: usize = 6;
@@ -18,10 +18,10 @@ impl BufferID {
     }
 
     pub fn new() -> Self {
-        Self(nanoid!(6, &SAFE, Self::seed).as_str())
+        Self(nanoid!(6, &SAFE, Self::seed))
     }
 
-    pub fn as_str(&self) -> &'static str {
-        self.0
+    pub fn inner(&self) -> &str {
+        &self.0
     }
 }

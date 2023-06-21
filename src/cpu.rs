@@ -33,25 +33,25 @@ impl Device for CPU {
     type Prim = *mut u8;
     type Allocator = CPU;
 
-    fn copy_from_host<T: TData>(&self, src: &[T], dst: Self::Prim) -> Result<(), AllocError> {
+    fn copy_from_host<T: TData>(&self, src: &[T], dst: &Self::Prim) -> Result<(), AllocError> {
         //Copying from Host to Host is a no-op
         Err(AllocError)
     }
 
-    fn copy_to_host<T: TData>(&self, src: Self::Prim, dst: &mut [T]) -> Result<(), AllocError> {
+    fn copy_to_host<T: TData>(&self, src: &Self::Prim, dst: &mut [T]) -> Result<(), AllocError> {
         //Copying from Host to Host is a no-op
         Err(AllocError)
     }
 
-    fn copy_to<T: TData, Ext: Device>(
+    fn copy_to<Ext: Device>(
         &self,
-        src: Self::Prim,
-        dst: Ext::Prim,
+        src: &Self::Prim,
+        dst: &Ext::Prim,
         len: usize,
         dst_device: &Ext,
     ) -> Result<(), AllocError> {
         dst_device.copy_from_host(
-            unsafe { std::slice::from_raw_parts(src as *const T, len) },
+            unsafe { std::slice::from_raw_parts(*src as *const u8, len) },
             dst,
         )
     }
