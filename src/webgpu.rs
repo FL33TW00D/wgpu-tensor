@@ -1,17 +1,9 @@
-use bytemuck::NoUninit;
 use std::alloc::AllocError;
-use std::alloc::Layout;
-use wgpu::util::DeviceExt;
-use wgpu::util::DownloadBuffer;
 
+use crate::{BufferID, Device, DeviceAllocator, TData};
+use wgpu::util::DeviceExt;
 use wgpu::InstanceDescriptor;
 use wgpu::Limits;
-
-use crate::AllocMode;
-use crate::DType;
-use crate::Device;
-use crate::Shape;
-use crate::TData;
 
 #[derive(Debug)]
 pub struct GPUHandle {
@@ -57,7 +49,27 @@ impl GPUHandle {
     }
 }
 
-///Thin wrapper over our GPUHandle for issuing commands to the GPU.
+impl DeviceAllocator for GPUHandle {
+    type Prim = wgpu::Buffer;
+
+    unsafe fn alloc(&self, layout: std::alloc::Layout, mode: crate::AllocMode) -> Self::Prim {
+        todo!()
+    }
+
+    unsafe fn alloc_init(
+        &self,
+        layout: std::alloc::Layout,
+        init: &[u8],
+        mode: crate::AllocMode,
+    ) -> Self::Prim {
+        todo!()
+    }
+
+    unsafe fn dealloc(&self, item: Self::Prim, layout: std::alloc::Layout) {
+        todo!()
+    }
+}
+
 #[derive(Debug)]
 pub struct WebGPU {
     handle: GPUHandle,
@@ -73,8 +85,9 @@ impl WebGPU {
 
 impl Device for WebGPU {
     type Prim = wgpu::Buffer;
+    type Allocator = GPUHandle;
 
-    fn copy_to_host<T: TData>(&self, src: Self::Prim, dst: &mut [T]) {
+    fn copy_to_host<T: TData>(&self, src: Self::Prim, dst: &mut [T]) -> Result<(), AllocError> {
         let buffer_slice = src.slice(..);
         let (tx, rx) = std::sync::mpsc::sync_channel(1);
 
@@ -83,16 +96,8 @@ impl Device for WebGPU {
             self.handle.queue(),
             &buffer_slice,
             move |buffer| {
-                // Called on download completed
                 tx.send(if let Ok(b) = buffer {
-                    unsafe {
-                        let bytes = std::slice::from_raw_parts(b.as_ptr() as *const u8, b.len());
-                        let dt = T::dtype();
-                        let size = dt.size_of() * dst.len();
-                        let mut dst =
-                            std::slice::from_raw_parts_mut(dst.as_mut_ptr() as *mut u8, size);
-                        dst.copy_from_slice(bytes);
-                    }
+                    unsafe { std::slice::from_raw_parts(b.as_ptr() as *const u8, b.len()) }
                 } else {
                     panic!("Failed to download buffer")
                 })
@@ -100,8 +105,21 @@ impl Device for WebGPU {
             },
         );
         self.handle.device().poll(wgpu::Maintain::Wait);
-        rx.recv().unwrap()
+        let result = rx.recv().unwrap();
+        let result =
+            unsafe { std::slice::from_raw_parts(result.as_ptr() as *const T, result.len()) };
+        dst.copy_from_slice(result);
+        Ok(())
     }
 
-    fn copy_from_host<T: TData>(&self, src: &[T], dst: Self::Prim) {}
+    fn copy_from_host<T: TData>(&self, src: &[T], dst: Self::Prim) -> Result<(), AllocError> {
+        self.handle
+            .device
+            .create_buffer_init(&wgpu::util::BufferInitDescriptor {
+                label: Some(BufferID::new()),
+                contents: bytemuck::cast_slice(src),
+                usage: wgpu::BufferUsages::COPY_SRC,
+            });
+        Ok(())
+    }
 }

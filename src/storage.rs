@@ -1,7 +1,6 @@
-use std::alloc::{AllocError, Layout};
+use std::alloc::Layout;
 
 use crate::device::Device;
-use crate::{AllocMode, TData, CPU};
 
 ///Storage is an abstraction that allows us to decouple a Tensor from its data.
 ///It is a contiguous one-dimensional array of elements of a single data type.
@@ -16,28 +15,10 @@ pub struct Storage<D: Device> {
 }
 
 impl<D: Device> Storage<D> {
-    pub fn to<Other: Device>(self, device: Other) -> Storage<Other> {
-        let 
-        Storage {
-            data,
-            layout: self.layout,
-            device,
-        }
+    pub fn new() {
+        todo!()
     }
-}
 
-impl Storage<CPU> {
-    pub fn new<T: TData>(data: &[T]) -> Result<Self, AllocError> {
-        let dt = T::dtype();
-        let bytes = data.len() * dt.size_of();
-        let layout = std::alloc::Layout::from_size_align(bytes, dt.alignment()).unwrap();
-
-        let data = CPU.allocate_init(data, AllocMode::ALL)?;
-
-        Ok(Self {
-            data,
-            layout,
-            device: CPU,
-        })
-    }
+    ///Create a new Storage on the given device.
+    pub fn to<Ext: Device>(&self, device: Ext) -> Storage<Ext> {}
 }

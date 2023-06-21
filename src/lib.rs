@@ -1,12 +1,17 @@
 #![feature(allocator_api)]
+#![feature(lazy_cell)]
 use smallvec::SmallVec;
 use std::{alloc::AllocError, fmt::Debug, rc::Rc};
 
+pub mod buffer_id;
+pub mod cpu;
 pub mod device;
 pub mod dtype;
 pub mod storage;
 pub mod webgpu;
 
+pub use buffer_id::*;
+pub use cpu::*;
 pub use device::*;
 pub use dtype::*;
 pub use storage::*;
@@ -103,22 +108,6 @@ impl Into<wgpu::BufferUsages> for AllocMode {
             AllocMode::STORAGE => wgpu::BufferUsages::STORAGE,
             AllocMode::ALL => wgpu::BufferUsages::all(),
         }
-    }
-}
-
-///Default device
-#[derive(Debug)]
-pub struct CPU;
-
-impl Device for CPU {
-    type Prim = *mut u8;
-
-    fn copy_to_host<T: TData>(&self, src: Self::Prim, dst: &mut [T]) {
-        todo!()
-    }
-
-    fn copy_from_host<T: TData>(&self, src: &[T], dst: Self::Prim) {
-        todo!()
     }
 }
 
