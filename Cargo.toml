@@ -7,6 +7,7 @@ edition = "2021"
 
 [dependencies]
 anyhow = "1.0.71"
+async-trait = "0.1.68"
 bytemuck = "1.13.1"
 itertools = "0.10.5"
 nanoid = "0.4.0"

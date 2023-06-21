@@ -66,6 +66,6 @@ impl Storage<CPU> {
 
 impl<D: Device> Drop for Storage<D> {
     fn drop(&mut self) {
-        let _ = self.device.deallocate(&mut self.data, self.layout);
+        self.device.deallocate(&mut self.data, self.layout).unwrap();
     }
 }

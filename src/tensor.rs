@@ -3,7 +3,7 @@ use std::{alloc::AllocError, rc::Rc};
 use crate::{as_std, DType, Device, Shape, Storage, Strides, TData, CPU};
 use itertools::Itertools;
 
-///Tensor  is a generalization of vectors and matrices to potentially higher dimensions.
+///Tensor is a generalization of vectors and matrices to potentially higher dimensions.
 ///Internally, it uses [`Storage`] to store the data.
 ///This decouples the tensor from the underlying memory, so in essence, every tensor is a view into a storage.
 ///T: The type of the elements in the tensor.
@@ -17,6 +17,7 @@ pub struct Tensor<D: Device> {
 }
 
 impl<D: Device> Tensor<D> {
+    ///Moves the tensor from D -> Other.
     pub fn to<Other: Device>(self, device: Other) -> Result<Tensor<Other>, anyhow::Error> {
         let storage = self.storage.to(device)?;
         Ok(Tensor {
@@ -30,7 +31,8 @@ impl<D: Device> Tensor<D> {
 
 impl Tensor<CPU> {
     ///Instantiates a new tensor on the CPU.
-    ///You cannot instantiate a tensor on any other device, you can move the tensor
+    ///You cannot instantiate a tensor on any other device
+    ///To create a tensor on a Device, D, you can move the tensor
     ///from CPU -> D using [`Tensor::to`].
     pub fn new<T: TData>(shape: Shape, data: Vec<T>) -> Result<Self, AllocError> {
         if shape.numel() != data.len() {
@@ -63,8 +65,8 @@ impl std::fmt::Display for Tensor<CPU> {
         unsafe fn dump_t<T: TData>(tensor: &Tensor<CPU>, n: usize) -> String {
             tensor.as_slice::<T>().unwrap()[0..n].iter().join(", ")
         }
-        let numel = self.shape.numel();
-        let bingo = unsafe { as_std!(dump_t(self.dt)(self, numel)) };
-        write!(f, "[{}]", bingo)
+        write!(f, "[{}]", unsafe {
+            as_std!(dump_t(self.dt)(self, self.shape.numel()))
+        })
     }
 }

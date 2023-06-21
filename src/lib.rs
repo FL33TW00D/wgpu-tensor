@@ -25,11 +25,11 @@ mod tests {
     async fn it_works() {
         let data: Vec<f32> = vec![1., 2., 3., 4., 5., 6., 7., 8.];
         let t = Tensor::<CPU>::new(vec![2, 4].into(), data).unwrap();
-        println!("Tensor: {}", t);
+        println!("Original CPU Tensor: {}", t);
         let wgpu_device = WebGPU::new().await.unwrap();
         let gpu_t = t.to(wgpu_device).unwrap();
-        println!("GPU: {:#?}", gpu_t);
+        println!("GPU Tensor: {:#?}", gpu_t);
         let returned = gpu_t.to(CPU).unwrap();
-        println!("Returned: {}", returned);
+        println!("Final CPU Tensor: {}", returned);
     }
 }

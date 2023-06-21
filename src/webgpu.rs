@@ -1,10 +1,13 @@
 use std::alloc::AllocError;
+use std::any::Any;
 
+use crate::DevicePrimitive;
 use crate::{BufferID, Device, DeviceAllocator, TData};
 use wgpu::util::DeviceExt;
 use wgpu::InstanceDescriptor;
 use wgpu::Limits;
 
+///Encapsulates everything needed to interact with the GPU.
 #[derive(Debug)]
 pub struct GPUHandle {
     device: wgpu::Device, //Responsible for the creation of compute resources.
@@ -12,7 +15,6 @@ pub struct GPUHandle {
 }
 
 impl GPUHandle {
-    // Get a device and a queue, honoring WGPU_ADAPTER_NAME and WGPU_BACKEND environment variables
     pub async fn new() -> Result<Self, anyhow::Error> {
         let backends = wgpu::util::backend_bits_from_env().unwrap_or(wgpu::Backends::PRIMARY);
         let instance = wgpu::Instance::new(InstanceDescriptor {
@@ -23,8 +25,6 @@ impl GPUHandle {
             .await
             .expect("No GPU found given preference");
 
-        // `request_device` instantiates the feature specific connection to the GPU, defining some parameters,
-        //  `features` being the available features.
         let (device, queue) = adapter
             .request_device(
                 &wgpu::DeviceDescriptor {
@@ -34,8 +34,7 @@ impl GPUHandle {
                 },
                 None,
             )
-            .await
-            .expect("Could not create adapter for GPU device");
+            .await?;
 
         Ok(Self { device, queue })
     }
@@ -70,7 +69,7 @@ impl DeviceAllocator for GPUHandle {
         self.device
             .create_buffer_init(&wgpu::util::BufferInitDescriptor {
                 label: Some(BufferID::new().inner()),
-                contents: bytemuck::cast_slice(init),
+                contents: init,
                 usage: mode.into(),
             })
     }
@@ -79,6 +78,8 @@ impl DeviceAllocator for GPUHandle {
         item.destroy()
     }
 }
+
+impl DevicePrimitive for wgpu::Buffer {}
 
 #[derive(Debug)]
 pub struct WebGPU {
@@ -107,7 +108,10 @@ impl Device for WebGPU {
             &buffer_slice,
             move |buffer| {
                 tx.send(if let Ok(b) = buffer {
-                    unsafe { std::slice::from_raw_parts(b.as_ptr() as *const u8, b.len()) }
+                    let dt = T::dtype();
+                    unsafe {
+                        std::slice::from_raw_parts(b.as_ptr() as *const T, dt.size_of() * dst.len())
+                    }
                 } else {
                     panic!("Failed to download buffer")
                 })
@@ -115,11 +119,7 @@ impl Device for WebGPU {
             },
         );
         self.handle.device().poll(wgpu::Maintain::Wait);
-        //TODO: bring inside closure
         let result = rx.recv().unwrap();
-        let dt = T::dtype();
-        let len = dt.size_of() * dst.len();
-        let result = unsafe { std::slice::from_raw_parts(result.as_ptr() as *const T, len) };
         dst.copy_from_slice(result);
         Ok(())
     }
@@ -134,7 +134,7 @@ impl Device for WebGPU {
         dst: &mut Self::Prim,
         len: usize,
     ) -> Result<(), AllocError> {
-        self.handle.queue().write_buffer(dst, 0, unsafe { src });
+        todo!()
     }
 
     fn allocate(

@@ -60,9 +60,5 @@ pub trait DeviceAllocator {
     unsafe fn dealloc(&self, item: &mut Self::Prim, layout: Layout);
 }
 
-///DevicePrimitive is a trait for types that can be used as primitives on a device.
-///They should expose the ability to get bytes
-pub trait DevicePrimitive: Debug {
-    fn as_bytes(&self) -> &[u8];
-    fn as_bytes_mut(&mut self) -> &mut [u8];
-}
+///Marker trait allowing for runtime type checking of device primitives.
+pub trait DevicePrimitive: Debug {}

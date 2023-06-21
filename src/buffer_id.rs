@@ -18,7 +18,8 @@ impl BufferID {
     }
 
     pub fn new() -> Self {
-        Self(nanoid!(6, &SAFE, Self::seed))
+        let length = Self::MAX_LENGTH;
+        Self(nanoid!(length, &SAFE, Self::seed))
     }
 
     pub fn inner(&self) -> &str {

@@ -25,13 +25,7 @@ impl DeviceAllocator for CPU {
     }
 }
 
-impl DevicePrimitive for *mut u8 {
-    fn as_bytes(&self) -> &[u8] {
-        unsafe { std::slice::from_raw_parts(*self, 1) }
-    }
-
-    fn as_bytes_mut(&mut self) -> &mut [u8] {}
-}
+impl DevicePrimitive for *mut u8 {}
 
 ///Default device
 #[derive(Debug)]
