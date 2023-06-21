@@ -1,6 +1,7 @@
 use std::{alloc::AllocError, rc::Rc};
 
-use crate::{DType, Device, Shape, Storage, Strides, TData, CPU};
+use crate::{as_std, DType, Device, Shape, Storage, Strides, TData, CPU};
+use itertools::Itertools;
 
 ///Tensor  is a generalization of vectors and matrices to potentially higher dimensions.
 ///Internally, it uses [`Storage`] to store the data.
@@ -46,13 +47,24 @@ impl Tensor<CPU> {
             storage: storage.into(),
         })
     }
+
+    pub fn as_slice<T: TData>(&self) -> anyhow::Result<&[T]> {
+        let ptr: *const T = self.storage.as_ptr()?;
+        if ptr.is_null() {
+            Ok(&[])
+        } else {
+            unsafe { Ok(std::slice::from_raw_parts::<T>(ptr, self.shape.numel())) }
+        }
+    }
 }
 
 impl std::fmt::Display for Tensor<CPU> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let data = self.storage.data();
-        let layout = self.storage.layout();
-        let test = unsafe { std::slice::from_raw_parts_mut(*data, layout.size()) };
-        write!(f, "{:?}", test)
+        unsafe fn dump_t<T: TData>(tensor: &Tensor<CPU>, n: usize) -> String {
+            tensor.as_slice::<T>().unwrap()[0..n].iter().join(", ")
+        }
+        let numel = self.shape.numel();
+        let bingo = unsafe { as_std!(dump_t(self.dt)(self, numel)) };
+        write!(f, "[{}]", bingo)
     }
 }

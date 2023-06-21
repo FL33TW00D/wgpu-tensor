@@ -53,6 +53,15 @@ impl Storage<CPU> {
             device: Rc::new(CPU),
         })
     }
+
+    pub fn as_ptr<T: TData>(&self) -> anyhow::Result<*const T> {
+        let ptr: *const T = self.data as *const T;
+        if ptr.is_null() {
+            Err(anyhow::anyhow!("Null pointer"))
+        } else {
+            Ok(ptr)
+        }
+    }
 }
 
 impl<D: Device> Drop for Storage<D> {
