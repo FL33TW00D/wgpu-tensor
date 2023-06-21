@@ -47,6 +47,7 @@ pub trait Device {
         dst_device: &Ext,
     ) -> Result<(), AllocError>;
     fn allocate(&self, layout: Layout, mode: AllocMode) -> Result<Self::Prim, AllocError>;
+    fn deallocate(&self, item: &mut Self::Prim, layout: Layout) -> Result<(), AllocError>;
 }
 
 ///DeviceAllocator is similar to [`std::alloc::GlobalAlloc`], but allows different allocation modes.
@@ -57,5 +58,5 @@ pub trait DeviceAllocator {
     type Prim;
     unsafe fn alloc(&self, layout: Layout, mode: AllocMode) -> Self::Prim;
     unsafe fn alloc_init(&self, layout: Layout, init: &[u8], mode: AllocMode) -> Self::Prim;
-    unsafe fn dealloc(&self, item: Self::Prim, layout: Layout);
+    unsafe fn dealloc(&self, item: &mut Self::Prim, layout: Layout);
 }

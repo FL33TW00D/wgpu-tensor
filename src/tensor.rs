@@ -32,6 +32,9 @@ impl Tensor<CPU> {
     ///You cannot instantiate a tensor on any other device, you can move the tensor
     ///from CPU -> D using [`Tensor::to`].
     pub fn new<T: TData>(shape: Shape, data: Vec<T>) -> Result<Self, AllocError> {
+        if shape.numel() != data.len() {
+            return Err(AllocError);
+        }
         let dt = T::dtype();
         let strides = shape.clone().into();
         let storage = Storage::new(data)?;
@@ -42,5 +45,14 @@ impl Tensor<CPU> {
             strides,
             storage: storage.into(),
         })
+    }
+}
+
+impl std::fmt::Display for Tensor<CPU> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let data = self.storage.data();
+        let layout = self.storage.layout();
+        let test = unsafe { std::slice::from_raw_parts_mut(*data, layout.size()) };
+        write!(f, "{:?}", test)
     }
 }

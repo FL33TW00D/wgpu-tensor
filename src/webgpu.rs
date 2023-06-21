@@ -75,7 +75,7 @@ impl DeviceAllocator for GPUHandle {
             })
     }
 
-    unsafe fn dealloc(&self, item: Self::Prim, _layout: std::alloc::Layout) {
+    unsafe fn dealloc(&self, item: &mut Self::Prim, _layout: std::alloc::Layout) {
         item.destroy()
     }
 }
@@ -144,5 +144,14 @@ impl Device for WebGPU {
         mode: crate::AllocMode,
     ) -> Result<Self::Prim, AllocError> {
         unsafe { Ok(self.handle.alloc(layout, mode)) }
+    }
+
+    fn deallocate(
+        &self,
+        item: &mut Self::Prim,
+        layout: std::alloc::Layout,
+    ) -> Result<(), AllocError> {
+        unsafe { self.handle.dealloc(item, layout) }
+        Ok(())
     }
 }

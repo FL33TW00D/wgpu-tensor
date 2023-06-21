@@ -20,8 +20,8 @@ impl DeviceAllocator for CPU {
         ptr
     }
 
-    unsafe fn dealloc(&self, item: Self::Prim, layout: std::alloc::Layout) {
-        unsafe { std::alloc::dealloc(item, layout) }
+    unsafe fn dealloc(&self, item: &mut Self::Prim, layout: std::alloc::Layout) {
+        unsafe { std::alloc::dealloc(*item, layout) }
     }
 }
 
@@ -62,5 +62,14 @@ impl Device for CPU {
         mode: AllocMode,
     ) -> Result<Self::Prim, AllocError> {
         unsafe { Ok(Self::Allocator::alloc(self, layout, mode)) }
+    }
+
+    fn deallocate(
+        &self,
+        item: &mut Self::Prim,
+        layout: std::alloc::Layout,
+    ) -> Result<(), AllocError> {
+        unsafe { Self::Allocator::dealloc(self, item, layout) };
+        Ok(())
     }
 }

@@ -1,7 +1,5 @@
 #![feature(lazy_cell)]
 #![feature(allocator_api)]
-use std::{alloc::AllocError, fmt::Debug, rc::Rc};
-
 pub mod buffer_id;
 pub mod cpu;
 pub mod device;
@@ -25,10 +23,13 @@ mod tests {
     use super::*;
     #[tokio::test]
     async fn it_works() {
-        let t = Tensor::<CPU>::new(vec![2, 2].into(), vec![1., 2., 3., 4.]).unwrap();
-        println!("{:#?}", t);
+        let data: Vec<f32> = vec![1., 2., 3., 4., 5., 6., 7., 8.];
+        let t = Tensor::<CPU>::new(vec![2, 4].into(), data).unwrap();
+        println!("Tensor: {}", t);
         let wgpu_device = WebGPU::new().await.unwrap();
-        let gpu_t = t.to(wgpu_device);
-        println!("{:#?}", gpu_t);
+        let gpu_t = t.to(wgpu_device).unwrap();
+        println!("GPU: {:#?}", gpu_t);
+        let returned = gpu_t.to(CPU).unwrap();
+        println!("Returned: {}", returned);
     }
 }
