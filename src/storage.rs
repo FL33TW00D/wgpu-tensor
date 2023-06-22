@@ -17,9 +17,9 @@ pub struct Storage<D: Device> {
 }
 
 impl<D: Device> Storage<D> {
-    ///Create a new Storage on the given device.
+    ///Copy storage from the current device to an external device.
+    ///Similar to Pytorch's [`to`](https://pytorch.org/docs/stable/generated/torch.Tensor.to.html) method.
     pub fn to<Ext: Device>(&self, ext: Ext) -> Result<Storage<Ext>, anyhow::Error> {
-        //Alloc mode here needs to be
         let mut dst = ext.allocate(self.layout, AllocMode::ALL)?;
         self.device.copy_to(&self.data, &mut dst, &ext)?;
 

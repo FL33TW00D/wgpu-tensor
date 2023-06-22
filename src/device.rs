@@ -33,8 +33,8 @@ pub trait Device {
     ///* WEBGPU: wgpu::Device
     type Allocator: DeviceAllocator + ?Sized;
     ///The primitive type used to represent memory on the device.
-    ///* CPU: *mut u8
-    ///* WEBGPU: wgpu::Buffer
+    ///* CPU: [`CPUPrim`]
+    ///* WEBGPU: [`wgpu::Buffer`]
     type Prim: DevicePrimitive;
     fn copy_from_host(&self, src: &[u8], dst: &mut Self::Prim) -> Result<(), AllocError>;
     fn copy_to_host(&self, src: &Self::Prim, dst: &mut [u8]) -> Result<(), AllocError>;
@@ -45,7 +45,10 @@ pub trait Device {
         ext: &Ext,
     ) -> Result<(), AllocError> {
         //Default implementation does a roundtrip through the host.
-        let mut buf = vec![0; src.len()];
+        let mut buf = Vec::with_capacity(src.len());
+        unsafe {
+            buf.set_len(src.len());
+        }
         self.copy_to_host(src, &mut buf)?;
         ext.copy_from_host(&buf, dst)?;
         Ok(())
