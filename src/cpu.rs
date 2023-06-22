@@ -1,12 +1,37 @@
-use std::{alloc::AllocError, ops::Range};
+use std::alloc::AllocError;
 
 use crate::{AllocMode, Device, DeviceAllocator, DevicePrimitive};
 
+///The CPU primitive for storing data.
+///Much like a slice, but owned.
+#[derive(Debug)]
+pub struct CPUPrim {
+    ptr: *mut u8,
+    len: usize,
+}
+impl CPUPrim {
+    pub fn new(ptr: *mut u8, len: usize) -> Self {
+        Self { ptr, len }
+    }
+
+    pub fn len(&self) -> usize {
+        self.len
+    }
+
+    pub fn as_ptr<T>(&self) -> *const T {
+        self.ptr as *const T
+    }
+}
+
 impl DeviceAllocator for CPU {
-    type Prim = *mut u8;
+    type Prim = CPUPrim;
 
     unsafe fn alloc(&self, layout: std::alloc::Layout, mode: AllocMode) -> Self::Prim {
-        unsafe { std::alloc::alloc(layout) }
+        let ptr = unsafe { std::alloc::alloc(layout) };
+        Self::Prim {
+            ptr,
+            len: layout.size(),
+        }
     }
 
     unsafe fn alloc_init(
@@ -17,18 +42,20 @@ impl DeviceAllocator for CPU {
     ) -> Self::Prim {
         let ptr = unsafe { std::alloc::alloc(layout) };
         unsafe { std::ptr::copy_nonoverlapping(init.as_ptr(), ptr, init.len()) };
-        ptr
+        Self::Prim {
+            ptr,
+            len: layout.size(),
+        }
     }
 
     unsafe fn dealloc(&self, item: &mut Self::Prim, layout: std::alloc::Layout) {
-        unsafe { std::alloc::dealloc(*item, layout) }
+        unsafe { std::alloc::dealloc(item.ptr, layout) };
     }
 }
 
-impl DevicePrimitive for *mut u8 {
-    type Device = CPU;
-    fn write_bytes(&self, _device: &CPU, data: &[u8], range: Range<usize>) {
-        unsafe { std::ptr::copy_nonoverlapping(data.as_ptr(), *self, range.len()) };
+impl DevicePrimitive for CPUPrim {
+    fn len(&self) -> usize {
+        self.len()
     }
 }
 
@@ -37,16 +64,16 @@ impl DevicePrimitive for *mut u8 {
 pub struct CPU;
 
 impl Device for CPU {
-    type Prim = *mut u8;
+    type Prim = CPUPrim;
     type Allocator = CPU;
 
     fn copy_from_host(&self, src: &[u8], dst: &mut Self::Prim) -> Result<(), AllocError> {
-        unsafe { std::ptr::copy_nonoverlapping(src.as_ptr(), *dst, src.len()) };
+        unsafe { std::ptr::copy_nonoverlapping(src.as_ptr(), dst.ptr, src.len()) };
         Ok(())
     }
 
     fn copy_to_host(&self, src: &Self::Prim, dst: &mut [u8]) -> Result<(), AllocError> {
-        unsafe { std::ptr::copy_nonoverlapping(*src, dst.as_mut_ptr(), dst.len()) };
+        unsafe { std::ptr::copy_nonoverlapping(src.ptr, dst.as_mut_ptr(), src.len()) };
         Ok(())
     }
 

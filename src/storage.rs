@@ -1,7 +1,6 @@
 use crate::device::Device;
-use crate::{AllocMode, TData, CPU};
+use crate::{AllocMode, CPUPrim, TData, CPU};
 use std::alloc::{AllocError, Layout};
-use std::any::Any;
 use std::fmt::Debug;
 use std::mem::ManuallyDrop;
 use std::rc::Rc;
@@ -20,12 +19,11 @@ pub struct Storage<D: Device> {
 impl<D: Device> Storage<D> {
     ///Create a new Storage on the given device.
     pub fn to<Ext: Device>(&self, ext: Ext) -> Result<Storage<Ext>, anyhow::Error> {
-        let mut prim = ext.allocate(self.layout, AllocMode::DEFAULT)?;
-
-        //What do to here?0
+        let mut dst = ext.allocate(self.layout, AllocMode::DEFAULT)?;
+        self.device.copy_to(&self.data, &mut dst, &ext);
 
         Ok(Storage {
-            data: prim,
+            data: dst,
             layout: self.layout,
             device: Rc::new(ext),
         })
@@ -50,17 +48,17 @@ impl Storage<CPU> {
         let layout = Layout::from_size_align(content.len() * dt.size_of(), dt.alignment()).unwrap();
 
         let mut content = ManuallyDrop::new(content);
-        let data = content.as_mut_ptr() as *mut u8;
+        let ptr = content.as_mut_ptr() as *mut u8;
 
         Ok(Storage {
-            data,
+            data: CPUPrim::new(ptr, layout.size()),
             layout,
             device: Rc::new(CPU),
         })
     }
 
     pub fn as_ptr<T: TData>(&self) -> anyhow::Result<*const T> {
-        let ptr: *const T = self.data as *const T;
+        let ptr: *const T = self.data.as_ptr();
         if ptr.is_null() {
             Err(anyhow::anyhow!("Null pointer"))
         } else {

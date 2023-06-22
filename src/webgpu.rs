@@ -81,13 +81,8 @@ impl DeviceAllocator for GPUHandle {
 }
 
 impl DevicePrimitive for wgpu::Buffer {
-    type Device = WebGPU;
-
-    fn write_bytes(&self, device: &WebGPU, data: &[u8], range: Range<usize>) {
-        device
-            .handle
-            .queue()
-            .write_buffer(self, range.start as u64, data)
+    fn len(&self) -> usize {
+        self.size() as _
     }
 }
 
@@ -115,6 +110,7 @@ impl Device for WebGPU {
     fn copy_to_host(&self, src: &Self::Prim, dst: &mut [u8]) -> Result<(), AllocError> {
         let buffer_slice = src.slice(..);
         let (tx, rx) = std::sync::mpsc::sync_channel(1);
+        let len = dst.len();
 
         wgpu::util::DownloadBuffer::read_buffer(
             self.handle.device(),
@@ -122,7 +118,7 @@ impl Device for WebGPU {
             &buffer_slice,
             move |buffer| {
                 tx.send(if let Ok(b) = buffer {
-                    unsafe { std::slice::from_raw_parts(b.as_ptr() as *const u8, dst.len()) }
+                    unsafe { std::slice::from_raw_parts(b.as_ptr() as *const u8, len) }
                 } else {
                     panic!("Failed to download buffer")
                 })
@@ -136,7 +132,7 @@ impl Device for WebGPU {
     }
 
     fn copy_from_host(&self, src: &[u8], dst: &mut Self::Prim) -> Result<(), AllocError> {
-        dst.write_bytes(self, src, 0..src.len());
+        self.handle.queue().write_buffer(dst, 0, src);
         Ok(())
     }
 
