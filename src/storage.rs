@@ -19,8 +19,8 @@ pub struct Storage<D: Device> {
 impl<D: Device> Storage<D> {
     ///Create a new Storage on the given device.
     pub fn to<Ext: Device>(&self, ext: Ext) -> Result<Storage<Ext>, anyhow::Error> {
-        let mut dst = ext.allocate(self.layout, AllocMode::DEFAULT)?;
-        self.device.copy_to(&self.data, &mut dst, &ext);
+        let mut dst = ext.allocate(self.layout, AllocMode::COPY_WRITE)?;
+        self.device.copy_to(&self.data, &mut dst, &ext)?;
 
         Ok(Storage {
             data: dst,

@@ -49,6 +49,8 @@ impl GPUHandle {
     }
 }
 
+///Allocator could be really smart here, and maintain a pool of buffers.
+///For now, we just create a new buffer for every allocation.
 impl DeviceAllocator for GPUHandle {
     type Prim = wgpu::Buffer;
 

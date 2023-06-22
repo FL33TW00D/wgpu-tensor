@@ -9,7 +9,7 @@ pub enum AllocMode {
     COPY_READ,
     COPY_WRITE,
     STORAGE,
-    DEFAULT,
+    ALL,
 }
 
 impl Into<wgpu::BufferUsages> for AllocMode {
@@ -20,7 +20,7 @@ impl Into<wgpu::BufferUsages> for AllocMode {
             AllocMode::COPY_READ => wgpu::BufferUsages::COPY_SRC,
             AllocMode::COPY_WRITE => wgpu::BufferUsages::COPY_DST,
             AllocMode::STORAGE => wgpu::BufferUsages::STORAGE,
-            AllocMode::DEFAULT => wgpu::BufferUsages::STORAGE,
+            AllocMode::ALL => wgpu::BufferUsages::COPY_DST | wgpu::BufferUsages::COPY_SRC,
         }
     }
 }
