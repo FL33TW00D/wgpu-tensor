@@ -22,6 +22,10 @@ impl CPUPrim {
     pub fn as_ptr<T>(&self) -> *const T {
         self.ptr as *const T
     }
+
+    pub fn is_empty(&self) -> bool {
+        self.len == 0
+    }
 }
 
 impl DeviceAllocator for CPU {

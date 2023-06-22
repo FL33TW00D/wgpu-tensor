@@ -1,10 +1,11 @@
 use nanoid::{alphabet::SAFE, nanoid};
+use once_cell::sync::Lazy;
 use rand::{prelude::StdRng, RngCore, SeedableRng};
-use std::cell::LazyCell;
 use std::sync::atomic::{AtomicU64, Ordering};
 
-const IDCNT: LazyCell<AtomicU64> = LazyCell::new(|| AtomicU64::new(0));
+static IDCNT: Lazy<AtomicU64> = Lazy::new(|| AtomicU64::new(0));
 
+#[derive(Default, Debug)]
 pub struct BufferID(String);
 
 impl BufferID {

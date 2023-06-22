@@ -1,9 +1,6 @@
-use std::alloc::AllocError;
-use std::any::Any;
-use std::ops::Range;
-
 use crate::DevicePrimitive;
-use crate::{BufferID, Device, DeviceAllocator, TData};
+use crate::{BufferID, Device, DeviceAllocator};
+use std::alloc::AllocError;
 use wgpu::util::DeviceExt;
 use wgpu::InstanceDescriptor;
 use wgpu::Limits;

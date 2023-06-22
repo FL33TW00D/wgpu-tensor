@@ -20,7 +20,7 @@ impl<D: Device> Storage<D> {
     ///Copy storage from the current device to an external device.
     ///Similar to Pytorch's [`to`](https://pytorch.org/docs/stable/generated/torch.Tensor.to.html) method.
     pub fn to<Ext: Device>(&self, ext: Ext) -> Result<Storage<Ext>, anyhow::Error> {
-        let mut dst = ext.allocate(self.layout, AllocMode::ALL)?;
+        let mut dst = ext.allocate(self.layout, AllocMode::COPY_SRC | AllocMode::COPY_DST)?;
         self.device.copy_to(&self.data, &mut dst, &ext)?;
 
         Ok(Storage {

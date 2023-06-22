@@ -1,27 +1,41 @@
 use std::alloc::{AllocError, Layout};
 use std::fmt::Debug;
+use std::mem::MaybeUninit;
 
-///When we allocate memory, we need to specify how we want to use it.
-#[allow(non_camel_case_types)]
-pub enum AllocMode {
-    MAP_READ,
-    MAP_WRITE,
-    COPY_READ,
-    COPY_WRITE,
-    STORAGE,
-    ALL,
+bitflags::bitflags! {
+    #[repr(transparent)]
+    pub struct AllocMode: u32 {
+        const MAP_READ = 1 << 0;
+        const MAP_WRITE = 1 << 1;
+        const COPY_SRC = 1 << 2;
+        const COPY_DST = 1 << 3;
+        const UNIFORM = 1 << 6;
+        const STORAGE = 1 << 7;
+    }
 }
 
-impl Into<wgpu::BufferUsages> for AllocMode {
-    fn into(self) -> wgpu::BufferUsages {
-        match self {
-            AllocMode::MAP_READ => wgpu::BufferUsages::MAP_READ,
-            AllocMode::MAP_WRITE => wgpu::BufferUsages::MAP_WRITE,
-            AllocMode::COPY_READ => wgpu::BufferUsages::COPY_SRC,
-            AllocMode::COPY_WRITE => wgpu::BufferUsages::COPY_DST,
-            AllocMode::STORAGE => wgpu::BufferUsages::STORAGE,
-            AllocMode::ALL => wgpu::BufferUsages::COPY_DST | wgpu::BufferUsages::COPY_SRC,
+impl From<AllocMode> for wgpu::BufferUsages {
+    fn from(value: AllocMode) -> Self {
+        let mut flags = Self::empty();
+        if value.contains(AllocMode::MAP_READ) {
+            flags |= Self::MAP_READ;
         }
+        if value.contains(AllocMode::MAP_WRITE) {
+            flags |= Self::MAP_WRITE;
+        }
+        if value.contains(AllocMode::COPY_SRC) {
+            flags |= Self::COPY_SRC;
+        }
+        if value.contains(AllocMode::COPY_DST) {
+            flags |= Self::COPY_DST;
+        }
+        if value.contains(AllocMode::UNIFORM) {
+            flags |= Self::UNIFORM;
+        }
+        if value.contains(AllocMode::STORAGE) {
+            flags |= Self::STORAGE;
+        }
+        flags
     }
 }
 
@@ -45,12 +59,14 @@ pub trait Device {
         ext: &Ext,
     ) -> Result<(), AllocError> {
         //Default implementation does a roundtrip through the host.
-        let mut buf = Vec::with_capacity(src.len());
+        let mut buf: Vec<MaybeUninit<u8>> = Vec::with_capacity(src.len());
         unsafe {
             buf.set_len(src.len());
         }
-        self.copy_to_host(src, &mut buf)?;
-        ext.copy_from_host(&buf, dst)?;
+        let buf_slice =
+            unsafe { std::slice::from_raw_parts_mut(buf.as_mut_ptr() as *mut u8, src.len()) };
+        self.copy_to_host(src, buf_slice)?;
+        ext.copy_from_host(buf_slice, dst)?;
         Ok(())
     }
     fn allocate(&self, layout: Layout, mode: AllocMode) -> Result<Self::Prim, AllocError>;
@@ -60,11 +76,21 @@ pub trait Device {
 ///DeviceAllocator is similar to [`std::alloc::GlobalAlloc`], but allows different allocation modes.
 pub trait DeviceAllocator {
     ///The primitive type used to represent memory on the device.
-    ///* CPU: *mut u8
+    ///* CPU: CPUPrim
     ///* WEBGPU: wgpu::Buffer
     type Prim;
+    ///Allocates memory on the device.
+    ///# Safety
+    ///* The memory must be properly aligned.
     unsafe fn alloc(&self, layout: Layout, mode: AllocMode) -> Self::Prim;
+    ///Allocates memory on the device and initializes it with the given data.
+    ///# Safety
+    ///* The memory must be properly aligned.
+    ///* The data must be of the correct length.
     unsafe fn alloc_init(&self, layout: Layout, init: &[u8], mode: AllocMode) -> Self::Prim;
+    ///Deallocates memory on the device.
+    ///# Safety
+    ///* The memory must be properly aligned.
     unsafe fn dealloc(&self, item: &mut Self::Prim, layout: Layout);
 }
 
@@ -72,4 +98,7 @@ pub trait DeviceAllocator {
 pub trait DevicePrimitive: Debug {
     ///Returns the size of the primitive in bytes.
     fn len(&self) -> usize;
+    fn is_empty(&self) -> bool {
+        self.len() == 0
+    }
 }
