@@ -1,6 +1,6 @@
 use smallvec::SmallVec;
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Shape(SmallVec<[usize; 4]>);
 
 impl Shape {

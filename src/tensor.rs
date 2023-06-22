@@ -16,6 +16,21 @@ pub struct Tensor<D: Device> {
     storage: Rc<Storage<D>>,
 }
 
+impl PartialEq for Tensor<CPU> {
+    fn eq(&self, other: &Self) -> bool {
+        if self.shape != other.shape {
+            return false;
+        }
+        if self.dt != other.dt {
+            return false;
+        }
+        unsafe fn eq_t<T: TData>(a: &Tensor<CPU>, b: &Tensor<CPU>) -> bool {
+            a.as_slice::<T>().unwrap() == b.as_slice::<T>().unwrap()
+        }
+        unsafe { as_std!(eq_t(self.dt)(self, other)) }
+    }
+}
+
 impl<D: Device> Tensor<D> {
     ///Moves the tensor from D -> Other.
     pub fn to<Ext: Device>(self, ext: Ext) -> Result<Tensor<Ext>, anyhow::Error> {

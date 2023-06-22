@@ -1,7 +1,7 @@
 use std::fmt::{Debug, Display};
 
 /// Data types for tensors.
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
 pub enum DType {
     U8,
     U16,
@@ -76,7 +76,9 @@ impl DType {
 }
 
 ///Marker trait for types that can be used as tensor data.
-pub trait TData: bytemuck::Pod + bytemuck::Zeroable + Send + Copy + Sync + Debug + Display {
+pub trait TData:
+    bytemuck::Pod + bytemuck::Zeroable + Send + Copy + Sync + Debug + Display + PartialEq
+{
     fn name() -> &'static str;
     fn dtype() -> DType;
 }
