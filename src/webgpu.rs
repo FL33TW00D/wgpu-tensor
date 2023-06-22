@@ -1,5 +1,6 @@
 use std::alloc::AllocError;
 use std::any::Any;
+use std::ops::Range;
 
 use crate::DevicePrimitive;
 use crate::{BufferID, Device, DeviceAllocator, TData};
@@ -79,7 +80,11 @@ impl DeviceAllocator for GPUHandle {
     }
 }
 
-impl DevicePrimitive for wgpu::Buffer {}
+impl DevicePrimitive for wgpu::Buffer {
+    fn write_bytes<WebGPU>(&self, device: &WebGPU, data: &[u8], range: Range<usize>) {
+        device.queue().write_buffer(self, range.start as u64, data)
+    }
+}
 
 #[derive(Debug)]
 pub struct WebGPU {
@@ -91,6 +96,10 @@ impl WebGPU {
         Ok(Self {
             handle: GPUHandle::new().await?,
         })
+    }
+
+    pub fn handle(&self) -> &GPUHandle {
+        &self.handle
     }
 }
 
@@ -130,9 +139,9 @@ impl Device for WebGPU {
 
     fn copy_to<Ext: Device>(
         &self,
-        src: &Ext::Prim,
-        dst: &mut Self::Prim,
-        len: usize,
+        src: &Self::Prim,
+        range: Range<usize>,
+        ext: &Ext,
     ) -> Result<(), AllocError> {
         todo!()
     }

@@ -18,8 +18,8 @@ pub struct Tensor<D: Device> {
 
 impl<D: Device> Tensor<D> {
     ///Moves the tensor from D -> Other.
-    pub fn to<Other: Device>(self, device: Other) -> Result<Tensor<Other>, anyhow::Error> {
-        let storage = self.storage.to(device)?;
+    pub fn to<Ext: Device>(self, ext: Ext) -> Result<Tensor<Ext>, anyhow::Error> {
+        let storage = self.storage.to(ext)?;
         Ok(Tensor {
             dt: self.dt,
             shape: self.shape,

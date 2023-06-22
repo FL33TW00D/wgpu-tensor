@@ -19,10 +19,9 @@ pub struct Storage<D: Device> {
 impl<D: Device> Storage<D> {
     ///Create a new Storage on the given device.
     pub fn to<Ext: Device>(&self, ext: Ext) -> Result<Storage<Ext>, anyhow::Error> {
-        let prim = ext.allocate(self.layout, AllocMode::DEFAULT)?;
-        //Here we should cast to bytes
+        let mut prim = ext.allocate(self.layout, AllocMode::DEFAULT)?;
         self.device
-            .copy_to(&self.data, &prim, self.layout.size(), &ext)?;
+            .copy_to::<Ext>(&self.data, 0..self.layout.size(), &ext)?;
         Ok(Storage {
             data: prim,
             layout: self.layout,

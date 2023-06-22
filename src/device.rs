@@ -1,5 +1,8 @@
 use std::alloc::{AllocError, Layout};
 use std::fmt::Debug;
+use std::ops::Range;
+
+use async_trait::async_trait;
 
 use crate::TData;
 
@@ -37,14 +40,14 @@ pub trait Device {
     ///* CPU: *mut u8
     ///* WEBGPU: wgpu::Buffer
     type Prim: DevicePrimitive;
-    fn copy_from_host<T: TData>(&self, src: &[T], dst: &Self::Prim) -> Result<(), AllocError>;
+    fn copy_from_host<T: TData>(&self, src: &[T], dst: &mut Self::Prim) -> Result<(), AllocError>;
     fn copy_to_host<T: TData>(&self, src: &Self::Prim, dst: &mut [T]) -> Result<(), AllocError>;
     fn copy_to<Ext: Device>(
         &self,
-        src: &Ext::Prim,
-        dst: &mut Self::Prim,
-        len: usize,
-    ) -> Result<(), AllocError>;
+        src: &Self::Prim,
+        range: Range<usize>,
+        ext: &Ext,
+    ) -> Result<Ext::Prim, AllocError>;
     fn allocate(&self, layout: Layout, mode: AllocMode) -> Result<Self::Prim, AllocError>;
     fn deallocate(&self, item: &mut Self::Prim, layout: Layout) -> Result<(), AllocError>;
 }
@@ -61,4 +64,6 @@ pub trait DeviceAllocator {
 }
 
 ///Marker trait allowing for runtime type checking of device primitives.
-pub trait DevicePrimitive: Debug {}
+pub trait DevicePrimitive: Debug {
+    fn write_bytes(&self, device: &dyn Device, data: &[u8], range: Range<usize>);
+}
