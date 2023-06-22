@@ -31,6 +31,7 @@ impl Into<wgpu::BufferUsages> for AllocMode {
 }
 
 ///Device is an abstraction for a device on which memory can be allocated.
+///Devices only work on bytes, storage handles higher level types.
 pub trait Device {
     ///The allocator used to allocate memory on the device.
     ///* CPU: std::alloc::System
@@ -40,14 +41,8 @@ pub trait Device {
     ///* CPU: *mut u8
     ///* WEBGPU: wgpu::Buffer
     type Prim: DevicePrimitive;
-    fn copy_from_host<T: TData>(&self, src: &[T], dst: &mut Self::Prim) -> Result<(), AllocError>;
-    fn copy_to_host<T: TData>(&self, src: &Self::Prim, dst: &mut [T]) -> Result<(), AllocError>;
-    fn copy_to<Ext: Device>(
-        &self,
-        src: &Self::Prim,
-        range: Range<usize>,
-        ext: &Ext,
-    ) -> Result<Ext::Prim, AllocError>;
+    fn copy_from_host(&self, src: &[u8], dst: &mut Self::Prim) -> Result<(), AllocError>;
+    fn copy_to_host(&self, src: &Self::Prim, dst: &mut [u8]) -> Result<(), AllocError>;
     fn allocate(&self, layout: Layout, mode: AllocMode) -> Result<Self::Prim, AllocError>;
     fn deallocate(&self, item: &mut Self::Prim, layout: Layout) -> Result<(), AllocError>;
 }
@@ -65,5 +60,6 @@ pub trait DeviceAllocator {
 
 ///Marker trait allowing for runtime type checking of device primitives.
 pub trait DevicePrimitive: Debug {
-    fn write_bytes(&self, device: &dyn Device, data: &[u8], range: Range<usize>);
+    type Device: Device;
+    fn write_bytes(&self, device: &Self::Device, data: &[u8], range: Range<usize>);
 }

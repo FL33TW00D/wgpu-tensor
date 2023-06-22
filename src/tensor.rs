@@ -27,6 +27,10 @@ impl<D: Device> Tensor<D> {
             storage: Rc::new(storage),
         })
     }
+
+    pub fn device(&self) -> &D {
+        self.storage.device()
+    }
 }
 
 impl Tensor<CPU> {

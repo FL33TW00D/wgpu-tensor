@@ -1,6 +1,7 @@
 use crate::device::Device;
 use crate::{AllocMode, TData, CPU};
 use std::alloc::{AllocError, Layout};
+use std::any::Any;
 use std::fmt::Debug;
 use std::mem::ManuallyDrop;
 use std::rc::Rc;
@@ -20,8 +21,9 @@ impl<D: Device> Storage<D> {
     ///Create a new Storage on the given device.
     pub fn to<Ext: Device>(&self, ext: Ext) -> Result<Storage<Ext>, anyhow::Error> {
         let mut prim = ext.allocate(self.layout, AllocMode::DEFAULT)?;
-        self.device
-            .copy_to::<Ext>(&self.data, 0..self.layout.size(), &ext)?;
+
+        //What do to here?0
+
         Ok(Storage {
             data: prim,
             layout: self.layout,
@@ -35,6 +37,10 @@ impl<D: Device> Storage<D> {
 
     pub fn layout(&self) -> &Layout {
         &self.layout
+    }
+
+    pub fn device(&self) -> &Rc<D> {
+        &self.device
     }
 }
 
