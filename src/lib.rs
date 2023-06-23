@@ -1,5 +1,5 @@
-#![feature(lazy_cell)]
 #![feature(allocator_api)]
+pub mod alloc_mode;
 pub mod buffer_id;
 pub mod cpu;
 pub mod device;
@@ -9,6 +9,7 @@ pub mod storage;
 pub mod tensor;
 pub mod webgpu;
 
+pub use alloc_mode::*;
 pub use buffer_id::*;
 pub use cpu::*;
 pub use device::*;

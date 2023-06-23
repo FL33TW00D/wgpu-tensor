@@ -1,6 +1,4 @@
-use std::alloc::AllocError;
-
-use crate::{AllocMode, Device, DeviceAllocator, DevicePrimitive};
+use crate::{AllocMode, Device, DeviceAllocator, DeviceError, DevicePrimitive};
 
 ///The CPU primitive for storing data.
 ///Much like a slice, but owned.
@@ -32,9 +30,8 @@ impl DeviceAllocator for CPU {
     type Prim = CPUPrim;
 
     unsafe fn alloc(&self, layout: std::alloc::Layout, _mode: AllocMode) -> Self::Prim {
-        let ptr = unsafe { std::alloc::alloc(layout) };
         Self::Prim {
-            ptr,
+            ptr: unsafe { std::alloc::alloc(layout) },
             len: layout.size(),
         }
     }
@@ -45,6 +42,9 @@ impl DeviceAllocator for CPU {
         init: &[u8],
         _mode: AllocMode,
     ) -> Self::Prim {
+        if layout.size() != init.len() {
+            panic!("Layout size does not match init size");
+        }
         let ptr = unsafe { std::alloc::alloc(layout) };
         unsafe { std::ptr::copy_nonoverlapping(init.as_ptr(), ptr, init.len()) };
         Self::Prim {
@@ -72,17 +72,17 @@ impl Device for CPU {
     type Prim = CPUPrim;
     type Allocator = CPU;
 
-    fn copy_from_host(&self, src: &[u8], dst: &mut Self::Prim) -> Result<(), AllocError> {
+    fn copy_from_host(&self, src: &[u8], dst: &mut Self::Prim) -> Result<(), DeviceError> {
         if src.len() != dst.len() {
-            return Err(AllocError);
+            return Err(DeviceError::CopyMismatch(src.len(), dst.len()));
         }
         unsafe { std::ptr::copy_nonoverlapping(src.as_ptr(), dst.ptr, src.len()) };
         Ok(())
     }
 
-    fn copy_to_host(&self, src: &Self::Prim, dst: &mut [u8]) -> Result<(), AllocError> {
+    fn copy_to_host(&self, src: &Self::Prim, dst: &mut [u8]) -> Result<(), DeviceError> {
         if src.len() != dst.len() {
-            return Err(AllocError);
+            return Err(DeviceError::CopyMismatch(src.len(), dst.len()));
         }
         unsafe { std::ptr::copy_nonoverlapping(src.ptr, dst.as_mut_ptr(), src.len()) };
         Ok(())
@@ -92,7 +92,7 @@ impl Device for CPU {
         &self,
         layout: std::alloc::Layout,
         mode: AllocMode,
-    ) -> Result<Self::Prim, AllocError> {
+    ) -> Result<Self::Prim, DeviceError> {
         unsafe { Ok(Self::Allocator::alloc(self, layout, mode)) }
     }
 
@@ -100,7 +100,7 @@ impl Device for CPU {
         &self,
         item: &mut Self::Prim,
         layout: std::alloc::Layout,
-    ) -> Result<(), AllocError> {
+    ) -> Result<(), DeviceError> {
         unsafe { Self::Allocator::dealloc(self, item, layout) };
         Ok(())
     }

@@ -1,6 +1,5 @@
-use crate::DevicePrimitive;
 use crate::{BufferID, Device, DeviceAllocator};
-use std::alloc::AllocError;
+use crate::{DeviceError, DevicePrimitive};
 use wgpu::util::DeviceExt;
 use wgpu::InstanceDescriptor;
 use wgpu::Limits;
@@ -13,7 +12,7 @@ pub struct GPUHandle {
 }
 
 impl GPUHandle {
-    pub async fn new() -> Result<Self, anyhow::Error> {
+    pub async fn new() -> Result<Self, DeviceError> {
         let backends = wgpu::util::backend_bits_from_env().unwrap_or(wgpu::Backends::PRIMARY);
         let instance = wgpu::Instance::new(InstanceDescriptor {
             backends,
@@ -21,7 +20,9 @@ impl GPUHandle {
         });
         let adapter = wgpu::util::initialize_adapter_from_env_or_default(&instance, backends, None)
             .await
-            .expect("No GPU found given preference");
+            .ok_or(DeviceError::ResourceError(anyhow::anyhow!(
+                "Unable to fetch adapter."
+            )))?;
 
         let (device, queue) = adapter
             .request_device(
@@ -32,7 +33,8 @@ impl GPUHandle {
                 },
                 None,
             )
-            .await?;
+            .await
+            .map_err(|e| DeviceError::ResourceError(anyhow::anyhow!(e)))?;
 
         Ok(Self { device, queue })
     }
@@ -106,7 +108,7 @@ impl Device for WebGPU {
     type Prim = wgpu::Buffer;
     type Allocator = GPUHandle;
 
-    fn copy_to_host(&self, src: &Self::Prim, dst: &mut [u8]) -> Result<(), AllocError> {
+    fn copy_to_host(&self, src: &Self::Prim, dst: &mut [u8]) -> Result<(), DeviceError> {
         let buffer_slice = src.slice(..);
         let (tx, rx) = std::sync::mpsc::sync_channel(1);
         let len = dst.len();
@@ -117,20 +119,22 @@ impl Device for WebGPU {
             &buffer_slice,
             move |buffer| {
                 tx.send(if let Ok(b) = buffer {
-                    unsafe { std::slice::from_raw_parts(b.as_ptr() as *const u8, len) }
+                    Ok(unsafe { std::slice::from_raw_parts(b.as_ptr() as *const u8, len) })
                 } else {
-                    panic!("Failed to download buffer")
+                    Err(DeviceError::TransferError("WebGPU".to_string()))
                 })
                 .unwrap();
             },
         );
         self.handle.device().poll(wgpu::Maintain::Wait);
-        let result = rx.recv().unwrap();
+        let result = rx
+            .recv()
+            .map_err(|_| DeviceError::TransferError("WebGPU".to_string()))??;
         dst.copy_from_slice(result);
         Ok(())
     }
 
-    fn copy_from_host(&self, src: &[u8], dst: &mut Self::Prim) -> Result<(), AllocError> {
+    fn copy_from_host(&self, src: &[u8], dst: &mut Self::Prim) -> Result<(), DeviceError> {
         self.handle.queue().write_buffer(dst, 0, src);
         Ok(())
     }
@@ -139,7 +143,7 @@ impl Device for WebGPU {
         &self,
         layout: std::alloc::Layout,
         mode: crate::AllocMode,
-    ) -> Result<Self::Prim, AllocError> {
+    ) -> Result<Self::Prim, DeviceError> {
         unsafe { Ok(self.handle.alloc(layout, mode)) }
     }
 
@@ -147,7 +151,7 @@ impl Device for WebGPU {
         &self,
         item: &mut Self::Prim,
         layout: std::alloc::Layout,
-    ) -> Result<(), AllocError> {
+    ) -> Result<(), DeviceError> {
         unsafe { self.handle.dealloc(item, layout) }
         Ok(())
     }

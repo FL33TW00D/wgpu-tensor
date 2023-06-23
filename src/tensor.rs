@@ -1,7 +1,15 @@
-use std::{alloc::AllocError, rc::Rc};
+use std::rc::Rc;
 
-use crate::{as_std, DType, Device, Shape, Storage, Strides, TData, CPU};
+use crate::{as_std, DType, Device, Shape, Storage, StorageError, Strides, TData, CPU};
 use itertools::Itertools;
+
+#[derive(thiserror::Error, Debug)]
+pub enum TensorError {
+    #[error("Provided shape: {0:?} does not match the # of elements: {1}")]
+    ShapeMismatch(Shape, usize),
+    #[error("Storage error: {0}")]
+    StorageError(#[from] StorageError),
+}
 
 ///Tensor is a generalization of vectors and matrices to potentially higher dimensions.
 ///Internally, it uses [`Storage`] to store the data.
@@ -53,9 +61,9 @@ impl Tensor<CPU> {
     ///You cannot instantiate a tensor on any other device
     ///To create a tensor on a Device, D, you can move the tensor
     ///from CPU -> D using [`Tensor::to`].
-    pub fn new<T: TData>(shape: Shape, data: Vec<T>) -> Result<Self, AllocError> {
+    pub fn new<T: TData>(shape: Shape, data: Vec<T>) -> Result<Self, TensorError> {
         if shape.numel() != data.len() {
-            return Err(AllocError);
+            return Err(TensorError::ShapeMismatch(shape, data.len()));
         }
         let dt = T::dtype();
         let strides = shape.clone().into();

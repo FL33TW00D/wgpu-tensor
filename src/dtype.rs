@@ -43,7 +43,7 @@ dtype!(f32, F32);
 dtype!(f64, F64);
 
 ///as_std! maps from our DType to the standard library type.
-///Taken from tract: https://github.com/sonos/tract/blob/6886e872bc0118db7f1e4e7dcabca4a69eab385e/data/src/datum.rs#L490
+///Taken from tract
 #[macro_export]
 macro_rules! as_std {
     ($($path:ident)::* ($dt:expr) ($($args:expr),*)) => { {
@@ -75,7 +75,6 @@ impl DType {
     }
 }
 
-///Marker trait for types that can be used as tensor data.
 pub trait TData:
     bytemuck::Pod + bytemuck::Zeroable + Send + Copy + Sync + Debug + Display + PartialEq
 {
