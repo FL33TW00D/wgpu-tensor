@@ -1,7 +1,6 @@
 use crate::AllocMode;
 
 use std::alloc::Layout;
-use std::any::Any;
 use std::fmt::Debug;
 use std::mem::MaybeUninit;
 
@@ -19,7 +18,7 @@ pub enum DeviceError {
 
 ///Device is an abstraction for a device on which memory can be allocated.
 ///Devices only work on bytes, storage handles higher level types.
-pub trait Device: Any {
+pub trait Device {
     ///The allocator used to allocate memory on the device.
     ///* CPU: [`std::alloc::System`]
     ///* WEBGPU: [`wgpu::Device`]
@@ -28,7 +27,6 @@ pub trait Device: Any {
     ///* CPU: [`CPUPrim`]
     ///* WEBGPU: [`wgpu::Buffer`]
     type Prim: DevicePrimitive;
-    fn as_any(&self) -> &dyn Any;
     fn copy_from_host(&self, src: &[u8], dst: &mut Self::Prim) -> Result<(), DeviceError>;
     fn copy_to_host(&self, src: &Self::Prim, dst: &mut [u8]) -> Result<(), DeviceError>;
     fn copy_to<Ext: Device>(
