@@ -1,4 +1,4 @@
-use crate::{BufferID, Device, DeviceAllocator, CPU};
+use crate::{BufferID, Device, DeviceAllocator};
 use crate::{DeviceError, DevicePrimitive};
 use wgpu::util::DeviceExt;
 use wgpu::InstanceDescriptor;
@@ -154,9 +154,5 @@ impl Device for WebGPU {
     ) -> Result<(), DeviceError> {
         unsafe { self.handle.dealloc(item, layout) }
         Ok(())
-    }
-
-    fn as_any(&self) -> &dyn std::any::Any {
-        self
     }
 }

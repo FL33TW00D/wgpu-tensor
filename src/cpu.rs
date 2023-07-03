@@ -104,8 +104,4 @@ impl Device for CPU {
         unsafe { Self::Allocator::dealloc(self, item, layout) };
         Ok(())
     }
-
-    fn as_any(&self) -> &dyn std::any::Any {
-        self
-    }
 }
